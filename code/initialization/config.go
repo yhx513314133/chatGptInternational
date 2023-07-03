@@ -22,6 +22,8 @@ type Config struct {
 	CertFile                   string
 	KeyFile                    string
 	OpenaiApiUrl               string
+	OpenaiModel                string
+	OpenaiMaxTokens            int
 	HttpProxy                  string
 	AzureOn                    bool
 	AzureApiVersion            string
@@ -47,6 +49,8 @@ func LoadConfig(cfg string) *Config {
 		FeishuAppVerificationToken: getViperStringValue("APP_VERIFICATION_TOKEN", ""),
 		FeishuBotName:              getViperStringValue("BOT_NAME", ""),
 		OpenaiApiKeys:              getViperStringArray("OPENAI_KEY", nil),
+		OpenaiModel:                getViperStringValue("OPENAI_MODEL", "gpt-3.5-turbo"),
+		OpenaiMaxTokens:            getViperIntValue("OPENAI_MAX_TOKENS", 2000),
 		HttpPort:                   getViperIntValue("HTTP_PORT", 9000),
 		HttpsPort:                  getViperIntValue("HTTPS_PORT", 9001),
 		UseHttps:                   getViperBoolValue("USE_HTTPS", false),
@@ -135,7 +139,8 @@ func (config *Config) GetKeyFile() string {
 func filterFormatKey(keys []string) []string {
 	var result []string
 	for _, key := range keys {
-		if strings.HasPrefix(key, "sk-") {
+		if strings.HasPrefix(key, "sk-") || strings.HasPrefix(key,
+			"fk") {
 			result = append(result, key)
 		}
 	}

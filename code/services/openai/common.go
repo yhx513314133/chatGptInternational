@@ -9,11 +9,11 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"start-feishubot/initialization"
+	"start-feishubot/logger"
+	"start-feishubot/services/loadbalancer"
 	"strings"
 	"time"
-
-	"start-feishubot/initialization"
-	"start-feishubot/services/loadbalancer"
 )
 
 type PlatForm string
@@ -39,6 +39,8 @@ type ChatGPT struct {
 	ApiKey      []string
 	ApiUrl      string
 	HttpProxy   string
+	Model       string
+	MaxTokens   int
 	Platform    PlatForm
 	AzureConfig AzureConfig
 }
@@ -120,10 +122,17 @@ func (gpt *ChatGPT) doAPIRequestWithRetry(url, method string,
 	var response *http.Response
 	var retry int
 	for retry = 0; retry <= maxRetries; retry++ {
+		// set body
+		if retry > 0 {
+			req.Body = ioutil.NopCloser(bytes.NewReader(requestBodyData))
+		}
 		response, err = client.Do(req)
 		//fmt.Println("--------------------")
 		//fmt.Println("req", req.Header)
 		//fmt.Printf("response: %v", response)
+		logger.Debug("req", req.Header)
+
+		logger.Debugf("response %v", response)
 		// read body
 		if err != nil || response.StatusCode < 200 || response.StatusCode >= 300 {
 
@@ -207,6 +216,8 @@ func NewChatGPT(config initialization.Config) *ChatGPT {
 		ApiKey:    config.OpenaiApiKeys,
 		ApiUrl:    config.OpenaiApiUrl,
 		HttpProxy: config.HttpProxy,
+		Model:     config.OpenaiModel,
+		MaxTokens: config.OpenaiMaxTokens,
 		Platform:  platform,
 		AzureConfig: AzureConfig{
 			BaseURL:        AzureApiUrlV1,
