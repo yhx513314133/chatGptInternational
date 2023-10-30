@@ -15,9 +15,45 @@ func msgFilter(msg string) string {
 	return regex.ReplaceAllString(msg, "")
 
 }
-func parseContent(content string) string {
+
+// Parse rich text json to text
+func parsePostContent(content string) string {
+	var contentMap map[string]interface{}
+	err := json.Unmarshal([]byte(content), &contentMap)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if contentMap["content"] == nil {
+		return ""
+	}
+	var text string
+	// deal with title
+	if contentMap["title"] != nil && contentMap["title"] != "" {
+		text += contentMap["title"].(string) + "\n"
+	}
+	// deal with content
+	contentList := contentMap["content"].([]interface{})
+	for _, v := range contentList {
+		for _, v1 := range v.([]interface{}) {
+			if v1.(map[string]interface{})["tag"] == "text" {
+				text += v1.(map[string]interface{})["text"].(string)
+			}
+		}
+		// add new line
+		text += "\n"
+	}
+	return msgFilter(text)
+}
+
+func parseContent(content, msgType string) string {
 	//"{\"text\":\"@_user_1  hahaha\"}",
 	//only get text content hahaha
+	if msgType == "post" {
+		return parsePostContent(content)
+	}
+
 	var contentMap map[string]interface{}
 	err := json.Unmarshal([]byte(content), &contentMap)
 	if err != nil {

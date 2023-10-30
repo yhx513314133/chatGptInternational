@@ -3,6 +3,8 @@ package handlers
 import (
 	"context"
 	"fmt"
+	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
+	"start-feishubot/logger"
 	"strings"
 
 	"start-feishubot/initialization"
@@ -40,7 +42,7 @@ func judgeMsgType(event *larkim.P2MessageReceiveV1) (string, error) {
 	msgType := event.Event.Message.MessageType
 
 	switch *msgType {
-	case "text", "image", "audio":
+	case "text", "image", "audio", "post":
 		return *msgType, nil
 	default:
 		return "", fmt.Errorf("unknown message type: %v", *msgType)
@@ -49,11 +51,12 @@ func judgeMsgType(event *larkim.P2MessageReceiveV1) (string, error) {
 
 func (m MessageHandler) msgReceivedHandler(ctx context.Context, event *larkim.P2MessageReceiveV1) error {
 	handlerType := judgeChatType(event)
+	logger.Debug("handlerType", handlerType)
 	if handlerType == "otherChat" {
 		fmt.Println("unknown chat type")
 		return nil
 	}
-	//fmt.Println(larkcore.Prettify(event.Event.Message))
+	logger.Debug("收到消息：", larkcore.Prettify(event.Event.Message))
 
 	msgType, err := judgeMsgType(event)
 	if err != nil {
@@ -76,7 +79,7 @@ func (m MessageHandler) msgReceivedHandler(ctx context.Context, event *larkim.P2
 		msgType:     msgType,
 		msgId:       msgId,
 		chatId:      chatId,
-		qParsed:     strings.Trim(parseContent(*content), " "),
+		qParsed:     strings.Trim(parseContent(*content, msgType), " "),
 		fileKey:     parseFileKey(*content),
 		imageKey:    parseImageKey(*content),
 		sessionId:   sessionId,
@@ -100,6 +103,7 @@ func (m MessageHandler) msgReceivedHandler(ctx context.Context, event *larkim.P2
 		&BalanceAction{},         //余额处理
 		&RolePlayAction{},        //角色扮演处理
 		&MessageAction{},         //消息处理
+		&StreamMessageAction{},   //流式消息处理
 
 	}
 	chain(data, actions...)
